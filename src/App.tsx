@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
-
-interface IItem {
-  id: number;
-  name: string;
-  done: boolean;
-}
+import itemsStore, { Item, ItemsList } from "./mobx/items_store";
+import {observable} from "mobx";
+import { observer } from "mobx-react"
 
 function NewItemBox({addItem}: { addItem: (_:string) => void}) {
     const [ text, setText ] = useState('');
@@ -27,8 +24,8 @@ function NewItemBox({addItem}: { addItem: (_:string) => void}) {
 }
 
 
-function Item({ item, toggleItem }: {
-    item: IItem,
+const ItemView = observer(function ItemView({ item, toggleItem }: {
+    item: Item,
     toggleItem: (itemId: number) => void,
 }) {
     return (
@@ -44,51 +41,44 @@ function Item({ item, toggleItem }: {
 
         </li>
     )
-}
+});
 
-function ItemsList({ items, toggleItem }: {
-    items: IItem[] ,
+const ItemsListView = observer(function ItemsListView({ items, toggleItem }: {
+    items: Item[] ,
     toggleItem: (itemId: number) => void,
 }) {
     return (
         <ul>
             {items.map(item => (
-                <Item item={item} toggleItem={toggleItem}/>
+                <ItemView item={item} toggleItem={toggleItem}/>
             ))}
         </ul>
     )
-}
+});
 
-function RemainingItems({ items }: { items: IItem [] }) {
-    const remaining = items.filter(item => !item.done).length;
+const RemainingItems = observer(function RemainingItems({ items }: { items: ItemsList }) {
+    const remaining = items.unfinishedTodoCount;
     return (
         <p>You have {remaining} items left to do</p>
     )
-}
+});
 
 function App() {
-    const [items, setItems] = useState<IItem []>([]);
+    const store = itemsStore;
 
     function addItem(name: string) {
-        const newItem = {
-            id: items.length,
-            name,
-            done: false,
-        }
-        setItems([...items, newItem]);
+        store.addItem(name);
     }
 
     function toggleItem(id: number) {
-        setItems(items.map(item => (
-            item.id === id ? {...item, done: !item.done} : item
-        )));
+        store.toggleItem(id);
     }
 
     return (
         <div className="App">
             <NewItemBox addItem={addItem}/>
-            <ItemsList items={items} toggleItem={toggleItem} />
-            <RemainingItems items={items} />
+            <ItemsListView items={store.todos} toggleItem={toggleItem} />
+            <RemainingItems items={store} />
         </div>
     );
 }
